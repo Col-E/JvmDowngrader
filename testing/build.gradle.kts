@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import xyz.wagyourtail.jvmdg.util.rangeTo
 
 plugins {
     java
@@ -53,13 +54,7 @@ tasks.test {
         project(":java-api").tasks.named("testJar")
     )
 
-    val versions = listOf(
-        testVersion,
-        testTargetVersion,
-        JavaVersion.VERSION_1_7,
-        JavaVersion.VERSION_11,
-        JavaVersion.VERSION_17
-    ).associateWith {
+    val versions = (testTargetVersion .. testVersion).associateWith {
         javaToolchains.launcherFor {
             languageVersion.set(JavaLanguageVersion.of(it.majorVersion))
             vendor.set(JvmVendorSpec.AZUL)

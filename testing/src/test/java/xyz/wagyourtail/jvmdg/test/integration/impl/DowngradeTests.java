@@ -53,28 +53,37 @@ public class DowngradeTests extends BaseIntegrationTests {
         flags.logLevel = Logger.Level.FATAL;
 
         return Stream.of(
+            // test minimum version
 //            new FlagsAndRunner(JavaRunner.JavaVersion.V1_8, flags.copy(e -> {
 //                e.classVersion = JavaRunner.JavaVersion.V1_5.toOpcode();
 //                e.shadeInlining = true;
-//                e.debugSkipStubs = Set.of(JavaRunner.JavaVersion.V1_8.toOpcode());
 //            })),
+            // test LTS versions
             new FlagsAndRunner(JavaRunner.JavaVersion.V1_8, flags.copy(e -> {
                 e.classVersion = JavaRunner.JavaVersion.V1_8.toOpcode();
                 e.shadeInlining = true;
             })),
             new FlagsAndRunner(JavaRunner.JavaVersion.V11, flags.copy(e -> {
-                e.classVersion = JavaRunner.JavaVersion.V1_8.toOpcode();
+                e.classVersion = JavaRunner.JavaVersion.V11.toOpcode();
                 e.shadeInlining = true;
             })),
             new FlagsAndRunner(JavaRunner.JavaVersion.V17, flags.copy(e -> {
+                e.classVersion = JavaRunner.JavaVersion.V17.toOpcode();
+                e.shadeInlining = true;
+            })),
+            new FlagsAndRunner(JavaRunner.JavaVersion.V21, flags.copy(e -> {
+                e.classVersion = JavaRunner.JavaVersion.V21.toOpcode();
+                e.shadeInlining = true;
+            })),
+            new FlagsAndRunner(JavaRunner.JavaVersion.V25, flags.copy(e -> {
+                e.classVersion = JavaRunner.JavaVersion.V25.toOpcode();
+                e.shadeInlining = true;
+            })),
+            // check that running downgraded on newer version works
+            new FlagsAndRunner(JavaRunner.JavaVersion.V21, flags.copy(e -> {
                 e.classVersion = JavaRunner.JavaVersion.V1_8.toOpcode();
                 e.shadeInlining = true;
             }))
-//            new FlagsAndRunner(flags.copy(e -> {
-//                e.classVersion = JavaRunner.JavaVersion.V1_7.toOpcode();
-//                e.debugSkipStubs = Set.of(JavaRunner.JavaVersion.V1_8.toOpcode());
-//            }), JavaRunner.JavaVersion.V1_8),
-//            new FlagsAndRunner(flags.copy(e -> e.classVersion = JavaRunner.JavaVersion.V1_7.toOpcode()), JavaRunner.JavaVersion.V1_7)
         ).filter(e -> launchersByVersion.containsKey(e.targetVersion()));
     }
 

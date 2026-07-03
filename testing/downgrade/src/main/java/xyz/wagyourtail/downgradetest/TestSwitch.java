@@ -277,6 +277,13 @@ public class TestSwitch {
         bigNoColSwitch(rt("val8"));
         bigNoColSwitch(rt(null));
         bigNoColSwitch(rt("val10"));
+
+        Number x = 12d;
+        switch (x) {
+            case Integer i1 -> System.out.println(i1);
+            case Double d -> System.out.println(d);
+            default -> {}
+        }
     }
 
     private static void bigNoColSwitch(String bigNoCol) {
