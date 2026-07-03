@@ -1,5 +1,6 @@
 package xyz.wagyourtail.jvmdg.cli;
 
+import org.objectweb.asm.Opcodes;
 import xyz.wagyourtail.jvmdg.ClassDowngrader;
 import xyz.wagyourtail.jvmdg.Constants;
 import xyz.wagyourtail.jvmdg.compile.ApiShader;
@@ -446,6 +447,10 @@ public class Main {
             return;
         }
 
+        if (Utils.getCurrentClassVersion() < Opcodes.V25) {
+            throw new IllegalArgumentException("Main method not found");
+        }
+
         Method mWithStr = null;
         try {
             mWithStr = clazz.getDeclaredMethod("main", String[].class);
@@ -475,34 +480,26 @@ public class Main {
         }
 
         Method instanceMain = findInstanceMainMethod(clazz);
-        if (instanceMain != null) {
-            Object obj;
-            try {
-                Constructor<?> c = clazz.getDeclaredConstructor();
-                c.setAccessible(true);
-                obj = c.newInstance();
-            } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
-            }
-            instanceMain.setAccessible(true);
-            if (instanceMain.getParameterTypes().length > 0) {
-                instanceMain.invoke(obj, (Object) bootstrapArgs);
-            } else {
-                instanceMain.invoke(obj);
-            }
-            return;
+        Object obj;
+        try {
+            Constructor<?> c = clazz.getDeclaredConstructor();
+            c.setAccessible(true);
+            obj = c.newInstance();
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
         }
-
+        instanceMain.setAccessible(true);
+        if (instanceMain.getParameterTypes().length > 0) {
+            instanceMain.invoke(obj, (Object) bootstrapArgs);
+        } else {
+            instanceMain.invoke(obj);
+        }
     }
 
-    private static Method findInstanceMainMethod(Class<?> clazz) {
+    private static Method findInstanceMainMethod(Class<?> clazz) throws NoSuchMethodException {
         try {
             return clazz.getMethod("main", String[].class);
         } catch (NoSuchMethodException ignored) {}
-        try {
-            return clazz.getMethod("main");
-        } catch (NoSuchMethodException ignored) {}
-
         Class<?> current = clazz;
         Method noArgsCandidate = null;
 
@@ -533,8 +530,15 @@ public class Main {
             current = current.getSuperclass();
         }
 
-        // Return the zero-argument fallback if no array-based main was inherited
-        return noArgsCandidate;
+        if (noArgsCandidate != null) {
+            return noArgsCandidate;
+        }
+
+        try {
+            return clazz.getMethod("main");
+        } catch (NoSuchMethodException ignored) {}
+
+        throw new NoSuchMethodException("no main method found!");
     }
 
 }
