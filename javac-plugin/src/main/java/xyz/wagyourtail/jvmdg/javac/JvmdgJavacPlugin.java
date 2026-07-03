@@ -130,7 +130,7 @@ public class JvmdgJavacPlugin extends Main implements Plugin, Closeable {
 
         try {
             parseArgs(args);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             Utils.sneakyThrow(e);
         }
 

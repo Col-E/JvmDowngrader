@@ -11,7 +11,13 @@ import xyz.wagyourtail.jvmdg.version.map.FullyQualifiedMemberNameAndDesc;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.FileSystem;
@@ -22,7 +28,7 @@ public class Main {
     protected final Flags flags = new Flags();
     protected final Deque<File> tempFiles = new ArrayDeque<>();
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public static void main(String[] args) throws Throwable {
         new Main().parseArgs(args);
     }
 
@@ -70,7 +76,7 @@ public class Main {
         return parser;
     }
 
-    public void parseArgs(String[] args) throws IOException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public void parseArgs(String[] args) throws Throwable {
         Arguments parser = buildArgumentList();
 
         List<String> argList = new ArrayList<>(Arrays.asList(args));
@@ -400,7 +406,7 @@ public class Main {
         }
     }
 
-    public void bootstrap(Map<String, List<String[]>> args) throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void bootstrap(Map<String, List<String[]>> args) throws Throwable {
         if (!args.containsKey("--main")) {
             throw new IllegalArgumentException("No main class specified");
         }
@@ -419,11 +425,116 @@ public class Main {
 
         try (ClassDowngrader currentVersionDowngrader = ClassDowngrader.getCurrentVersionDowngrader(flags)) {
             currentVersionDowngrader.getClassLoader().addDelegate(classpath.toArray(new URL[0]));
-            Class.forName(main, false, currentVersionDowngrader.getClassLoader()).getMethod("main", String[].class).invoke(
-                null,
-                (Object) bootstrapArgs
-            );
+            invokeMain(Class.forName(main, false, currentVersionDowngrader.getClassLoader()), bootstrapArgs);
         }
+    }
+
+    private void invokeMain(Class<?> clazz, String[] bootstrapArgs) throws Throwable {
+//        0. A public static void main(String[] args) method
+//        1. A static void main(String[] args) method of non-private access (i.e., public, protected or package) declared in the launched class,
+//        2. A static void main() method of non-private access declared in the launched class,
+//        3. A void main(String[] args) instance method of non-private access declared in the launched class or inherited from a superclass, or, finally,
+//        4. A void main() instance method of non-private access declared in the launched class or inherited from a superclass.
+        // 0
+        MethodHandles.Lookup publicLookup = MethodHandles.publicLookup();
+        MethodHandle traditional = null;
+        try {
+            traditional = publicLookup.findStatic(clazz, "main", MethodType.methodType(void.class, String[].class));
+        } catch (NoSuchMethodException | IllegalAccessException ignored) {}
+        if (traditional != null) {
+            traditional.invoke((Object) bootstrapArgs);
+            return;
+        }
+
+        Method mWithStr = null;
+        try {
+            mWithStr = clazz.getDeclaredMethod("main", String[].class);
+            if (mWithStr.getReturnType() != void.class) {
+                mWithStr = null;
+            }
+        } catch (NoSuchMethodException ignored) {}
+
+        if (mWithStr != null && Modifier.isStatic(mWithStr.getModifiers()) && !Modifier.isPrivate(mWithStr.getModifiers())) {
+            mWithStr.setAccessible(true);
+            mWithStr.invoke(null, (Object) bootstrapArgs);
+            return;
+        }
+
+        Method m = null;
+        try {
+            m = clazz.getDeclaredMethod("main");
+            if (m.getReturnType() != void.class) {
+                m = null;
+            }
+        } catch (NoSuchMethodException ignored) {}
+
+        if (m != null && Modifier.isStatic(m.getModifiers()) && !Modifier.isPrivate(m.getModifiers())) {
+            m.setAccessible(true);
+            m.invoke(null);
+            return;
+        }
+
+        Method instanceMain = findInstanceMainMethod(clazz);
+        if (instanceMain != null) {
+            Object obj;
+            try {
+                Constructor<?> c = clazz.getDeclaredConstructor();
+                c.setAccessible(true);
+                obj = c.newInstance();
+            } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+            instanceMain.setAccessible(true);
+            if (instanceMain.getParameterTypes().length > 0) {
+                instanceMain.invoke(obj, (Object) bootstrapArgs);
+            } else {
+                instanceMain.invoke(obj);
+            }
+            return;
+        }
+
+    }
+
+    private static Method findInstanceMainMethod(Class<?> clazz) {
+        try {
+            return clazz.getMethod("main", String[].class);
+        } catch (NoSuchMethodException ignored) {}
+        try {
+            return clazz.getMethod("main");
+        } catch (NoSuchMethodException ignored) {}
+
+        Class<?> current = clazz;
+        Method noArgsCandidate = null;
+
+        while (current != null && current != Object.class) {
+            // Priority 1: Check for main(String[] args) in the current class layer
+            try {
+                Method m = current.getDeclaredMethod("main", String[].class);
+                if (!Modifier.isPrivate(m.getModifiers()) && !Modifier.isStatic(m.getModifiers()) && m.getReturnType() == void.class) {
+                    return m;
+                }
+            } catch (NoSuchMethodException e) {
+                // Fall through to check for a no-arg main variant
+            }
+
+            // Priority 2: Check for main() if no array version was found yet
+            if (noArgsCandidate == null) {
+                try {
+                    noArgsCandidate = current.getDeclaredMethod("main");
+                    if (Modifier.isPrivate(noArgsCandidate.getModifiers()) || Modifier.isStatic(noArgsCandidate.getModifiers()) || noArgsCandidate.getReturnType() != void.class) {
+                        noArgsCandidate = null;
+                    }
+                } catch (NoSuchMethodException e) {
+                    // Method doesn't exist at this specific layer
+                }
+            }
+
+            // Move up to the parent superclass
+            current = current.getSuperclass();
+        }
+
+        // Return the zero-argument fallback if no array-based main was inherited
+        return noArgsCandidate;
     }
 
 }
