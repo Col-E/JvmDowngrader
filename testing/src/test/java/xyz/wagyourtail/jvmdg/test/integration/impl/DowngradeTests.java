@@ -202,6 +202,10 @@ public class DowngradeTests extends BaseIntegrationTests {
     }
 
     public static void compareResults(String mainClass, FlagsAndRunner javaVersion, Map.Entry<Integer, String> originalResult, Map.Entry<Integer, String> downgradedResult) {
+        // remove hsperf error if has one on first line of downgraded
+        if (downgradedResult.getValue().matches("\\[\\d+.\\d+s\\]\\[warning\\]\\[perf")) {
+            downgradedResult.setValue(downgradedResult.getValue().substring(downgradedResult.getValue().indexOf('\n')));
+        }
         assertEquals(originalResult.getValue(), downgradedResult.getValue(), "Output mismatch for " + mainClass + " on " + javaVersion.readableSlug());
         assertEquals(originalResult.getKey(), downgradedResult.getKey(), "Exit code mismatch for " + mainClass + " on " + javaVersion.readableSlug());
     }

@@ -53,8 +53,7 @@ public class ZipDowngrader {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            Path tmp = output.resolveSibling(output.getFileName() + ".tmp");
-            Files.deleteIfExists(tmp);
+            Path tmp = parent != null ? Files.createTempFile(parent, output.getFileName().toString(), ".zip") : Files.createTempFile(output.getFileName().toString(), ".zip");
             try (final FileSystem outputZipFs = Utils.openZipFileSystem(tmp, true)) {
                 PathDowngrader.downgradePaths(downgrader, Collections.singletonList(zipfs.getPath("/")), Collections.singletonList(outputZipFs.getPath("/")), classpath);
             }
