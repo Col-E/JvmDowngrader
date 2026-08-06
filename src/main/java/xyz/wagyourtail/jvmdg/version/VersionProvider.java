@@ -5,7 +5,7 @@ import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.signature.SignatureWriter;
 import org.objectweb.asm.tree.*;
 import xyz.wagyourtail.jvmdg.ClassDowngrader;
-import xyz.wagyourtail.jvmdg.asm.ASMUtils;
+import xyz.wagyourtail.jvmdg.asm.AnnotationUtils;
 import xyz.wagyourtail.jvmdg.cli.Flags;
 import xyz.wagyourtail.jvmdg.logging.Logger;
 import xyz.wagyourtail.jvmdg.stub.all.RemovedInterfaces;
@@ -1184,7 +1184,7 @@ public abstract class VersionProvider {
             if (classStubs.containsKey(annotationType)) {
                 Pair<Type, Pair<Class<?>, Adapter>> stub = classStubs.get(annotationType);
                 if (stub.getSecond().getSecond().keepInterface()) {
-                    E newAnnotation = ASMUtils.copyAnnotation(annotation);
+                    E newAnnotation = AnnotationUtils.copyAnnotation(annotation);
                     transformAnnotation(newAnnotation, warnings);
                     annotations.add(newAnnotation);
                 } else {

@@ -2,6 +2,9 @@ package xyz.wagyourtail.jvmdg.asm;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LocalVariableAnnotationNode;
+import org.objectweb.asm.tree.TypeAnnotationNode;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
@@ -14,7 +17,44 @@ import java.util.Map;
 
 public class AnnotationUtils {
 
-    // create annotation from AnnotationNode
+    /**
+     * create a duplicate annotation node
+     * @param from annotation node to copy
+     * @return duplicate annotation node
+     * @param <E> annotation node type
+     */
+    public static  <E extends AnnotationNode> E copyAnnotation(E from) {
+        if (from.getClass() == LocalVariableAnnotationNode.class) {
+            LocalVariableAnnotationNode fromLv = (LocalVariableAnnotationNode) from;
+            int[] indexes = new int[fromLv.index.size()];
+            for (int i = 0; i < indexes.length; i++) {
+                indexes[i] = fromLv.index.get(i);
+            }
+            LocalVariableAnnotationNode toLv = new LocalVariableAnnotationNode(fromLv.typeRef, fromLv.typePath, fromLv.start.toArray(new LabelNode[0]), fromLv.end.toArray(new LabelNode[0]), indexes, fromLv.desc);
+            from.accept(toLv);
+            return (E) toLv;
+        }
+        if (from.getClass() == TypeAnnotationNode.class) {
+            TypeAnnotationNode fromT = (TypeAnnotationNode) from;
+            TypeAnnotationNode toT = new TypeAnnotationNode(fromT.typeRef, fromT.typePath, fromT.desc);
+            from.accept(toT);
+            return (E) toT;
+        }
+        if (from.getClass() == AnnotationNode.class) {
+            AnnotationNode toA = new AnnotationNode(from.desc);
+            from.accept(toA);
+            return (E) toA;
+        }
+        throw new RuntimeException("Unknown annotation type: " + from.getClass());
+    }
+
+    /**
+     * create annotation from AnnotationNode
+     * @param classNode annotation node
+     * @return annotation
+     * @param <T> annotation type
+     * @throws ClassNotFoundException when fails to find a class in the annotation
+     */
     @SuppressWarnings("unchecked")
     public static <T extends Annotation> T createAnnotation(AnnotationNode classNode) throws ClassNotFoundException {
         return (T) Proxy.newProxyInstance(
