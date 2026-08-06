@@ -7,7 +7,7 @@ base {
 }
 version = "1.0.0"
 
-val testVersion = JavaVersion.toVersion(project.properties["testVersion"] as String)
+val testVersion = JavaVersion.toVersion(project.findProperty("testVersion") as String)
 
 java {
     sourceCompatibility = testVersion
@@ -22,7 +22,7 @@ tasks.compileJava {
     options.encoding = "UTF-8"
 }
 
-val removeLibs by tasks.registering {
+val removeLibs = tasks.register("removeLibs") {
     doLast {
         delete(fileTree("dir" to "build/libs", "include" to "**/*.jar"))
     }

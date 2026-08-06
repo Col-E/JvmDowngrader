@@ -1,4 +1,6 @@
+import com.sun.imageio.plugins.jpeg.JPEG.vendor
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import sun.jvmstat.monitor.MonitoredVmUtil.jvmArgs
 import xyz.wagyourtail.jvmdg.util.rangeTo
 
 plugins {
@@ -6,7 +8,7 @@ plugins {
     alias(libs.plugins.jmh)
 }
 
-val testVersion = JavaVersion.toVersion(project.properties["testVersion"] as String)
+val testVersion = JavaVersion.toVersion(project.findProperty("testVersion") as String)
 
 java {
     sourceCompatibility = testVersion
@@ -34,7 +36,7 @@ dependencies {
     testImplementation(libs.java.diff.utils)
 }
 
-val testTargetVersion = JavaVersion.toVersion(project.properties["testTargetVersion"] as String)
+val testTargetVersion = JavaVersion.toVersion(project.findProperty("testTargetVersion") as String)
 
 jmh {
     warmupIterations = 2
@@ -61,20 +63,22 @@ tasks.test {
         }.get().executablePath.toString()
     }
 
-    jvmArgs(
-        "-Djvmdg.test.version=$version",
-        "-Djvmdg.test.originalVersion=$testVersion",
-        "-Djvmdg.test.javaVersion=${versions.keys.joinToString(File.pathSeparator) { it.majorVersion }}",
-        "-Djvmdg.test.launcher=${versions.values.joinToString(File.pathSeparator)}",
-        "-Djvmdg.test.downgradeClasspath=${rootProject.sourceSets["shared"].compileClasspath.joinToString(File.pathSeparator) { it.absolutePath }}",
-        "-Djvmdg.test.downgradePath=${
-            project(":testing:downgrade").tasks.named("annotationASMJar").get().outputs.files.singleFile.absolutePath
-        }",
-        "-Djvmdg.test.multiVersionPath=${project(":testing:multi-version").tasks.jar.get().outputs.files.singleFile.absolutePath}",
-        "-Djvmdg.test.javaApiPath=${
-            project(":java-api").tasks.named("testJar").get().outputs.files.singleFile.absolutePath
-        }",
-    )
+    doFirst {
+        jvmArgs(
+            "-Djvmdg.test.version=$version",
+            "-Djvmdg.test.originalVersion=$testVersion",
+            "-Djvmdg.test.javaVersion=${versions.keys.joinToString(File.pathSeparator) { it.majorVersion }}",
+            "-Djvmdg.test.launcher=${versions.values.joinToString(File.pathSeparator)}",
+            "-Djvmdg.test.downgradeClasspath=${rootProject.sourceSets["shared"].compileClasspath.joinToString(File.pathSeparator) { it.absolutePath }}",
+            "-Djvmdg.test.downgradePath=${
+                project(":testing:downgrade").tasks.named("annotationASMJar").get().outputs.files.singleFile.absolutePath
+            }",
+            "-Djvmdg.test.multiVersionPath=${project(":testing:multi-version").tasks.jar.get().outputs.files.singleFile.absolutePath}",
+            "-Djvmdg.test.javaApiPath=${
+                project(":java-api").tasks.named("testJar").get().outputs.files.singleFile.absolutePath
+            }",
+        )
+    }
 
     testLogging {
         events.add(TestLogEvent.PASSED)

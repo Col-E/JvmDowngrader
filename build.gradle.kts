@@ -52,14 +52,14 @@ allprojects {
     }
 
     version = if (project.hasProperty("version_snapshot")) {
-        "${project.properties["version"]}-SNAPSHOT"
+        "${project.findProperty("version")}-SNAPSHOT"
     } else {
-        project.properties["version"] as String
+        project.findProperty("version") as String
     }
-    group = project.properties["maven_group"] as String
+    group = project.findProperty("maven_group") as String
 
     base {
-        archivesName.set("${properties["archives_base_name"]}${if (path == ":") "" else path.replace(":", "-")}")
+        archivesName.set("${findProperty("archives_base_name")}${if (path == ":") "" else path.replace(":", "-")}")
     }
 
     repositories {
@@ -106,13 +106,13 @@ nmcp {
         project(":")
         project(":java-api")
 
-        username = project.properties["ossrhUsername"] as String?
-        password = project.properties["ossrhPassword"] as String?
+        username = project.findProperty("ossrhUsername") as String?
+        password = project.findProperty("ossrhPassword") as String?
         publicationType = "AUTOMATIC"
     }
 }
 
-val shared by sourceSets.creating {
+val shared = sourceSets.create("shared") {
     compileClasspath += sourceSets["main"].compileClasspath
     runtimeClasspath += sourceSets["main"].runtimeClasspath
 }
@@ -133,7 +133,7 @@ sourceSets {
 }
 
 dependencies {
-    val api by configurations.getting
+    val api = configurations["api"]
 
     api(libs.asm)
     api(libs.asm.tree)
@@ -141,7 +141,7 @@ dependencies {
     api(libs.asm.util)
 }
 
-val mainVersion = project.properties["mainVersion"] as String
+val mainVersion = project.findProperty("mainVersion") as String
 
 java {
     toolchain {
@@ -191,7 +191,8 @@ tasks.javadoc {
 
 project.evaluationDependsOnChildren()
 
-val shadowJar by tasks.registering(ShadowJar::class) {
+val shadowJar = tasks.register<ShadowJar>("shadowJar") {
+    description = "smash everything together"
     from(sourceSets["main"].output, sourceSets["shared"].output)
     from(project("javac-plugin").sourceSets["main"].output)
     from(rootDir.resolve("LGPLv2.1.md"))
@@ -251,8 +252,8 @@ publishing {
                 uri("https://maven.wagyourtail.xyz/releases/")
             }
             credentials {
-                username = project.properties["mvn.user"] as String? ?: System.getenv("USERNAME")
-                password = project.properties["mvn.key"] as String? ?: System.getenv("TOKEN")
+                username = project.findProperty("mvn.user") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("mvn.key") as String? ?: System.getenv("TOKEN")
             }
         }
     }

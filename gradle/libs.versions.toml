@@ -2,6 +2,9 @@
 asm = "9.10.1"
 kotlin = "2.4.10"
 
+jb_annotations = "26.1.0"
+jb_annotations5 = "24.1.0"
+
 gson = "2.10.1"
 apache_commons_compress = "1.28.0"
 java_diff_utils = "4.12"
@@ -18,6 +21,9 @@ asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm_commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
 asm_util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 asm_tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+
+jetbrains_annotations = { module = "org.jetbrains:annotations", version.ref = "jb_annotations" }
+jetbrains_annotations_j5 = { module = "org.jetbrains:annotations-java5", version.ref = "jb_annotations5" }
 
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 apache_commons_compress = { module = "org.apache.commons:commons-compress", version.ref = "apache_commons_compress" }

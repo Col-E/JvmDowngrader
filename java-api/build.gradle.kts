@@ -35,16 +35,16 @@ fun SourceSet.outputOf(sourceSet: SourceSet) {
     runtimeClasspath += sourceSet.output
 }
 
-operator fun JavaVersion.rangeTo(that: JavaVersion): Array<JavaVersion> {
-    return JavaVersion.values().copyOfRange(this.ordinal, that.ordinal + 1)
+operator fun JavaVersion.rangeTo(that: JavaVersion): Iterable<JavaVersion> {
+    return JavaVersion.entries.subList(this.ordinal, that.ordinal + 1)
 }
 
 operator fun JavaVersion.minus(int: Int): JavaVersion {
-    return JavaVersion.values()[this.ordinal - int]
+    return JavaVersion.entries[this.ordinal - int]
 }
 
-val fromVersion = JavaVersion.toVersion(project.properties["stubFromVersion"]!!)
-val toVersion = JavaVersion.toVersion(project.properties["stubToVersion"]!!) + 1
+val fromVersion = JavaVersion.toVersion(project.findProperty("stubFromVersion")!!)
+val toVersion = JavaVersion.toVersion(project.findProperty("stubToVersion")!!) + 1
 
 sourceSets {
     for (vers in fromVersion..toVersion) {
@@ -57,7 +57,7 @@ sourceSets {
     }
 }
 
-val coverage by sourceSets.creating {
+val coverage = sourceSets.create("coverage") {
     inputOf(sourceSets.main.get())
     outputOf(sourceSets.main.get())
     for (vers in fromVersion..toVersion) {
@@ -77,7 +77,7 @@ for (vers in fromVersion..toVersion) {
     }
 }
 
-val mainVersion = JavaVersion.toVersion(project.properties["mainVersion"]!!)
+val mainVersion = JavaVersion.toVersion(project.findProperty("mainVersion")!!)
 
 tasks.compileJava {
     doFirst {
@@ -122,7 +122,7 @@ tasks.compileJava {
     configCompile(mainVersion)
 }
 
-val testVersion = JavaVersion.toVersion(project.properties["testVersion"]!!)
+val testVersion = JavaVersion.toVersion(project.findProperty("testVersion")!!)
 
 tasks.compileTestJava {
     configCompile(testVersion)
@@ -132,13 +132,13 @@ tasks.getByName<JavaCompile>("compileCoverageJava") {
     configCompile(toVersion - 1)
 }
 
-val genCtSym by tasks.registering(GenerateCtSymTask::class) {
+val genCtSym = tasks.register<GenerateCtSymTask>("genCtSym") {
     group = "jvmdg"
     lowerVersion = fromVersion
     upperVersion = toVersion - 1
 }
 
-val coverageReport by tasks.registering(CoverageRunTask::class) {
+val coverageReport = tasks.register<CoverageRunTask>("coverageReport") {
     group = "jvmdg"
     dependsOn(testJar, genCtSym, tasks.getByName("compileCoverageJava"))
     apiJar.set(testJar.get().archiveFile.get().asFile)
@@ -174,7 +174,7 @@ tasks.jar {
     }
 }
 
-val testJar by tasks.registering(Jar::class) {
+val testJar = tasks.register<Jar>("testJar") {
     from(*((fromVersion..toVersion).map { sourceSets["java${it.ordinal + 1}"].output }).toTypedArray())
     from(rootProject.sourceSets.getByName("shared").output)
     from(sourceSets.main.get().output)
@@ -206,7 +206,7 @@ tasks.javadoc {
     (options as CoreJavadocOptions).addStringOption("Xdoclint:none", "-quiet")
 }
 
-val shadowJar by tasks.registering(ShadowJar::class) {
+val shadowJar = tasks.register<ShadowJar>("shadowJar") {
     dependsOn(tasks.jar.get().taskDependencies)
     from(*((fromVersion..toVersion).map { sourceSets["java${it.ordinal + 1}"].output } + sourceSets.main.get().output).toTypedArray())
 

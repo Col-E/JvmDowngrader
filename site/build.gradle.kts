@@ -9,8 +9,8 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion by project.properties
-val mvnResolverVersion by project.properties
+val ktorVersion = project.findProperty("ktorVersion")
+val mvnResolverVersion = project.findProperty("mvnResolverVersion")
 
 dependencies {
     implementation("io.ktor:ktor-server-core:$ktorVersion")
@@ -62,7 +62,8 @@ tasks.getByName("run", JavaExec::class) {
     classpath += files(project.rootDir)
 }
 
-val myShadowJar by tasks.creating(ShadowJar::class) {
+val myShadowJar = tasks.register<ShadowJar>("myShadowJar") {
+    description = "shadow jar for site"
     from(sourceSets.main.get().output)
     from(projectDir.parentFile.resolve("LICENSE.md"))
     from(projectDir.parentFile.resolve("license")) {
