@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -141,7 +142,7 @@ public class MultiVersionTests extends BaseIntegrationTests {
     @Execution(ExecutionMode.CONCURRENT)
     public void testMultiVersion(String main) throws IOException, InterruptedException {
         JavaRunner.JavaVersion version = getVersionOf(main);
-        JavaRunner.JavaVersion aboveTarget = launchersByVersion.keySet().stream().filter(e -> e.getMajorVersion() >= version.getMajorVersion()).findFirst().orElseThrow();
+        JavaRunner.JavaVersion aboveTarget = Arrays.asList(JavaRunner.JavaVersion.values()).reversed().stream().filter(launchersByVersion::containsKey).filter(e -> e.getMajorVersion() >= version.getMajorVersion()).findFirst().orElseThrow();
 
         Map.Entry<Integer, String> originalResult = originalResults.get(main);
         Map.Entry<Integer, String> fullDowngradeResult = fullDowngradeResults.get(main);
