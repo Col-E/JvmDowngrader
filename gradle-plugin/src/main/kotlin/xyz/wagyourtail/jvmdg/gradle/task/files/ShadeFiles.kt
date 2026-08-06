@@ -65,20 +65,6 @@ abstract class ShadeFiles: ConventionTask(), ShadeFlags, FlagsConvention {
         convention(project.gradle.sharedServices.registrations.getByName("${project.path}:jvmdgDefaultFlags").parameters as ShadeFlags)
     }
 
-    override fun shadePath(
-        @ClosureParams(
-            value = SimpleType::class,
-            options = [
-                "java.lang.String"
-            ]
-        )
-        action: Closure<String>
-    ) {
-        shadePath.set {
-            action.call(it)
-        }
-    }
-
     @TaskAction
     fun doDowngrade() {
         val toDowngrade = inputCollection.map { it.toPath() }.filter { it.exists() }
@@ -108,7 +94,7 @@ abstract class ShadeFiles: ConventionTask(), ShadeFlags, FlagsConvention {
                 val downgradedFile = downgraded[i]
                 ApiShader.shadeApis(
                     this.toFlags(),
-                    shadePath.get().invoke(toDowngrade[i].name),
+                    toDowngrade[i].name.substringBefore(".").substringBeforeLast("-").replace(Regex("[.;\\[/]"), "-") + "/",
                     toDowngradeFile,
                     downgradedFile,
                     apiJar.get().toSet()

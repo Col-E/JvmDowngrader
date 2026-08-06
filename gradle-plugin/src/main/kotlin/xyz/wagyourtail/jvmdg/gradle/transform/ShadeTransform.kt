@@ -30,7 +30,7 @@ abstract class ShadeTransform: TransformAction<ShadeTransform.ShadeTransformFlag
 
         ApiShader.shadeApis(
             flags.toFlags(),
-            flags.shadePath.get().invoke(input.nameWithoutExtension),
+            input.name.substringBefore(".").substringBeforeLast("-").replace(Regex("[.;\\[/]"), "-") + "/",
             input,
             output,
             flags.apiJar.get().toSet()
@@ -38,21 +38,6 @@ abstract class ShadeTransform: TransformAction<ShadeTransform.ShadeTransformFlag
     }
 
     abstract class ShadeTransformFlags : TransformParameters, ShadeFlags {
-
-
-        override fun shadePath(
-            @ClosureParams(
-                value = SimpleType::class,
-                options = [
-                    "java.lang.String"
-                ]
-            )
-            action: Closure<String>
-        ) {
-            shadePath.set {
-                action.call(it)
-            }
-        }
 
     }
 

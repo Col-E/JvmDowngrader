@@ -7,8 +7,10 @@ import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import org.gradle.api.file.ArchiveOperations
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -40,6 +42,9 @@ abstract class ShadeJar: Jar(), ShadeFlags, FlagsConvention {
     @get:Internal
     val isRefreshDependencies = project.gradle.startParameter.isRefreshDependencies
 
+    @get:Optional
+    abstract val shadePath: Property<String>
+
     /**
      * must already be downgraded
      */
@@ -53,8 +58,17 @@ abstract class ShadeJar: Jar(), ShadeFlags, FlagsConvention {
         convention(project.gradle.sharedServices.registrations.getByName("${project.path}:jvmdgDefaultFlags").parameters as ShadeFlags)
     }
 
+    fun shadePath(path: String) {
+        this.shadePath.set(path)
+    }
 
-    override fun shadePath(
+    @Deprecated("use a static string")
+    fun shadePath(action: (String) -> String) {
+        shadePath.set(project.provider { action(archiveFileName.get()) })
+    }
+
+    @Deprecated("use a static string")
+    fun shadePath(
         @ClosureParams(
             value = SimpleType::class,
             options = [
@@ -63,9 +77,7 @@ abstract class ShadeJar: Jar(), ShadeFlags, FlagsConvention {
         )
         action: Closure<String>
     ) {
-        shadePath.set {
-            action.call(it)
-        }
+        shadePath.set(project.provider { action.call(archiveFileName.get()) })
     }
 
     @TaskAction
@@ -75,7 +87,7 @@ abstract class ShadeJar: Jar(), ShadeFlags, FlagsConvention {
 
         ApiShader.shadeApis(
             this.toFlags(),
-            shadePath.get().invoke(archiveFileName.get()),
+            shadePath.getOrElse(archiveBaseName.get().replace(Regex("[.;\\[/]"), "-") + "/"),
             inputFile.asFile.get(),
             tempOutput,
             apiJar.get().toSet()

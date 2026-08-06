@@ -53,11 +53,16 @@ abstract class JVMDowngraderExtension @Inject constructor(@get:Internal val proj
         apiJar.convention(project.provider {
             val apiJar = project.file(".gradle").resolve("jvmdg/java-api-${version}.jar")
             if (!apiJar.exists() || project.gradle.startParameter.isRefreshDependencies) {
-                apiJar.parentFile.mkdirs()
-                JVMDowngraderExtension::class.java.getResourceAsStream("/META-INF/lib/java-api.jar").use { stream ->
-                    if (stream == null) throw IllegalStateException("java-api.jar not found in resources")
-                    apiJar.outputStream().use { os ->
-                        stream.copyTo(os)
+                synchronized(project) {
+                    if (!apiJar.exists() || project.gradle.startParameter.isRefreshDependencies) {
+                        apiJar.parentFile.mkdirs()
+                        JVMDowngraderExtension::class.java.getResourceAsStream("/META-INF/lib/java-api.jar")
+                            .use { stream ->
+                                if (stream == null) throw IllegalStateException("java-api.jar not found in resources")
+                                apiJar.outputStream().use { os ->
+                                    stream.copyTo(os)
+                                }
+                            }
                     }
                 }
             }
@@ -72,8 +77,6 @@ abstract class JVMDowngraderExtension @Inject constructor(@get:Internal val proj
         debugSkipStubs.convention(emptySet()).finalizeValueOnRead()
         debugDumpClasses.convention(false).finalizeValueOnRead()
         debugNoSynthetic.convention(false).finalizeValueOnRead()
-        shadePath.convention { it.substringBefore(".").substringBeforeLast("-").replace(Regex("[.;\\[/]"), "-") + "/" }
-            .finalizeValueOnRead()
         shadeInlining.convention(true).finalizeValueOnRead()
         multiReleaseOriginal.convention(false).finalizeValueOnRead()
         multiReleaseVersions.convention(emptySet()).finalizeValueOnRead()
@@ -97,20 +100,6 @@ abstract class JVMDowngraderExtension @Inject constructor(@get:Internal val proj
 
     @Deprecated("not compatibile with configuration cache for use in tasks")
     fun getDowngradedApi(version: JavaVersion): Set<File> = downgradedApis[version]
-
-    override fun shadePath(
-        @ClosureParams(
-            value = SimpleType ::class,
-            options = [
-                "java.lang.String"
-            ]
-        )
-        action: Closure<String>
-    ) {
-        shadePath.set {
-            action.call(it)
-        }
-    }
 
     @JvmOverloads
     fun dg(dep: Configuration, shade: Boolean = true, config: DowngradeFlags.() -> Unit = {}) {

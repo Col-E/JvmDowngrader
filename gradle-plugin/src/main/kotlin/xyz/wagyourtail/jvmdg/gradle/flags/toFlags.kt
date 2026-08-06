@@ -48,7 +48,6 @@ fun convention(self: DowngradeFlags, target: DowngradeFlags) = with(self) {
     downgradeFromMultiReleases.convention(target.downgradeFromMultiReleases)
     if (this is ShadeFlags && target is ShadeFlags) {
         shadeInlining.convention(target.shadeInlining)
-        shadePath.convention(target.shadePath)
     }
 }
 

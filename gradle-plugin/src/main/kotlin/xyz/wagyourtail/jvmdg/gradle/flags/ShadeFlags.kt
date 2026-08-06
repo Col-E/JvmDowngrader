@@ -7,11 +7,9 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
+import java.io.Serializable
 
 interface ShadeFlags: DowngradeFlags {
-
-    @get:Internal
-    val shadePath: Property<(fileName: String) -> String>
 
     /**
      *
@@ -20,18 +18,5 @@ interface ShadeFlags: DowngradeFlags {
     @get:Input
     @get:Optional
     val shadeInlining: Property<Boolean>
-
-    /**
-     * @since 1.3.4
-     */
-    fun shadePath(
-        @ClosureParams(
-            value = SimpleType ::class,
-            options = [
-                "java.lang.String"
-            ]
-        )
-        action: Closure<String>
-    )
 
 }

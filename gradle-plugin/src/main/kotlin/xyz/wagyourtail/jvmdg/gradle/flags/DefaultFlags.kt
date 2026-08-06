@@ -10,19 +10,5 @@ abstract class DefaultFlags : BuildService<DefaultFlags.ShadeBuildServiceFlags> 
 
     abstract class ShadeBuildServiceFlags : BuildServiceParameters, ShadeFlags {
 
-        override fun shadePath(
-            @ClosureParams(
-                value = SimpleType::class,
-                options = [
-                    "java.lang.String"
-                ]
-            )
-            action: Closure<String>
-        ) {
-            shadePath.set {
-                action.call(it)
-            }
-        }
-
     }
 }
