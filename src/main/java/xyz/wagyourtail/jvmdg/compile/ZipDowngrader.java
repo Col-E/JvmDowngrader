@@ -9,6 +9,7 @@ import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -52,10 +53,12 @@ public class ZipDowngrader {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            Files.deleteIfExists(output);
-            try (final FileSystem outputZipFs = Utils.openZipFileSystem(output, true)) {
+            Path tmp = output.resolveSibling(output.getFileName() + ".tmp");
+            Files.deleteIfExists(tmp);
+            try (final FileSystem outputZipFs = Utils.openZipFileSystem(tmp, true)) {
                 PathDowngrader.downgradePaths(downgrader, Collections.singletonList(zipfs.getPath("/")), Collections.singletonList(outputZipFs.getPath("/")), classpath);
             }
+            Files.move(tmp, output, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
