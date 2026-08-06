@@ -6,13 +6,11 @@ import xyz.wagyourtail.jvmdg.util.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.zip.ZipOutputStream;
 
 public class ZipDowngrader {
 
@@ -54,6 +52,7 @@ public class ZipDowngrader {
                 Files.createDirectories(parent);
             }
             Path tmp = parent != null ? Files.createTempFile(parent, output.getFileName().toString(), ".zip") : Files.createTempFile(output.getFileName().toString(), ".zip");
+            new ZipOutputStream(Files.newOutputStream(tmp, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)).close();
             try (final FileSystem outputZipFs = Utils.openZipFileSystem(tmp, true)) {
                 PathDowngrader.downgradePaths(downgrader, Collections.singletonList(zipfs.getPath("/")), Collections.singletonList(outputZipFs.getPath("/")), classpath);
             }

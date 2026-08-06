@@ -14,10 +14,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.zip.ZipOutputStream;
@@ -115,7 +112,7 @@ public class Utils {
 
     public static FileSystem openZipFileSystem(Path path, boolean create) throws IOException {
         if (create && !Files.exists(path)) {
-            new ZipOutputStream(Files.newOutputStream(path)).close();
+            new ZipOutputStream(Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)).close();
         }
         return FileSystems.newFileSystem(path, null);
     }
